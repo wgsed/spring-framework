@@ -78,10 +78,12 @@ class ConditionEvaluator {
 	 * @return if the item should be skipped
 	 */
 	public boolean shouldSkip(@Nullable AnnotatedTypeMetadata metadata, @Nullable ConfigurationPhase phase) {
+		// 如果元数据为空  或者不包含Conditional 注解，返回false
 		if (metadata == null || !metadata.isAnnotated(Conditional.class.getName())) {
 			return false;
 		}
 
+		// 如果包含Conditional注解  走下面的逻辑  找到所有的条件类，去判断是否匹配
 		if (phase == null) {
 			if (metadata instanceof AnnotationMetadata annotationMetadata &&
 					ConfigurationClassUtils.isConfigurationCandidate(annotationMetadata)) {

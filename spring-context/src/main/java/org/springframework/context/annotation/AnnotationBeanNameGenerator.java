@@ -105,7 +105,9 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 					Set<String> result = amd.getMetaAnnotationTypes(key);
 					return (result.isEmpty() ? Collections.emptySet() : result);
 				});
+				// 判断是否含有org.springframework.stereotype.Component 注解
 				if (isStereotypeWithNameValue(type, metaTypes, attributes)) {
+					// 有的话  取其value值
 					Object value = attributes.get("value");
 					if (value instanceof String strVal && !strVal.isEmpty()) {
 						if (beanName != null && !strVal.equals(beanName)) {
@@ -147,6 +149,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	 * @return the default bean name (never {@code null})
 	 */
 	protected String buildDefaultBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
+		//org.springframework.context.annotation.AnnotationBeanNameGenerator.buildDefaultBeanName(org.springframework.beans.factory.config.BeanDefinition)
 		return buildDefaultBeanName(definition);
 	}
 

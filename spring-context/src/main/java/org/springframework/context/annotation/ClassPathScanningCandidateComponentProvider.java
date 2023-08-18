@@ -311,6 +311,9 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 * @return a corresponding Set of autodetected bean definitions
 	 */
 	public Set<BeanDefinition> findCandidateComponents(String basePackage) {
+		// 可以在项目中定义一个文件spring.components 文件中的内容为cn.fs.xxx=org.springframework.stereotype.Component格式
+		// 如果文件中没有内容的话，不会走if判断  会走到else中，就算加了这个文件，类上面也要加上Component注解，否则扫描不到
+		// 这个判断会看项目中有没有这个文件，有的话就会进入判断
 		if (this.componentsIndex != null && indexSupportsIncludeFilters()) {
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
 		}
@@ -420,11 +423,13 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		try {
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
+			// 获取包路径下所有的class文件资源 通过ResourcePatternResolver
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
 			for (Resource resource : resources) {
 				String filename = resource.getFilename();
+				//如果class文件名含有CGLIB的标志，则跳过
 				if (filename != null && filename.contains(ClassUtils.CGLIB_CLASS_SEPARATOR)) {
 					// Ignore CGLIB-generated classes in the classpath
 					continue;
@@ -433,14 +438,30 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 					logger.trace("Scanning " + resource);
 				}
 				try {
+					// 获取元数据读取器
+					//利用MetadataReaderFactory解析Resource对象得到MetadataReader
+					//（在Spring源码中MetadataReaderFactory具体的实现类为CachingMetadataReaderFactory，
+					// MetadataReader的具体实现类为SimpleMetadataReader）
 					MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(resource);
+
+
+					// 判断 该class 是否被排除或者包含
+					//利用MetadataReader进行excludeFilters和includeFilters，
+					// 以及条件注解@Conditional的筛选（某个类上是否存在@Conditional注解，如果存在则调用注解中所指定的类的match方法进行匹配，匹配成功则通过筛选，匹配失败则pass掉。）
 					if (isCandidateComponent(metadataReader)) {
+
+
+						//筛选通过后，基于metadataReader生成ScannedGenericBeanDefinition
 						ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
 						sbd.setSource(resource);
+
+
+						// 再基于metadataReader判断是不是对应的类是不是接口或抽象类
 						if (isCandidateComponent(sbd)) {
 							if (debugEnabled) {
 								logger.debug("Identified candidate component class: " + resource);
 							}
+							// 加入到候选名单中
 							candidates.add(sbd);
 						}
 						else {
@@ -492,11 +513,13 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 * @return whether the class qualifies as a candidate component
 	 */
 	protected boolean isCandidateComponent(MetadataReader metadataReader) throws IOException {
+		//判断当前传入的类是否和任一排除的过滤器匹配，如果有 返回false
 		for (TypeFilter tf : this.excludeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
 				return false;
 			}
 		}
+		//判断当前传入的类是否和任一包含的过滤器匹配，如果有，检查是否有条件注解
 		for (TypeFilter tf : this.includeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
 				return isConditionMatch(metadataReader);
@@ -529,7 +552,10 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 */
 	protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
 		AnnotationMetadata metadata = beanDefinition.getMetadata();
+		// metadata.isConcrete() 判断 该类不是接口也不是抽象类  如果都不是 返回true
+		// metadata.isIndependent() 判断该类是否是独立的，顶级类或者静态内部类
 		return (metadata.isIndependent() && (metadata.isConcrete() ||
+				// 如果 是抽象的，则要判断是否含有lookup注解
 				(metadata.isAbstract() && metadata.hasAnnotatedMethods(Lookup.class.getName()))));
 	}
 
