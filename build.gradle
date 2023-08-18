@@ -10,11 +10,6 @@ plugins {
 	id 'me.champeau.jmh' version '0.7.1' apply false
 	id 'me.champeau.mrjar' version '0.1.1'
 }
-tasks.all {
-	task -> if (task.name.startsWith('process') || task.name.startsWith('compile') || task.name.startsWith('build')) {
-		task.dependsOn('clean')
-	}
-}
 ext {
 	moduleProjects = subprojects.findAll { it.name.startsWith("spring-") }
 	javaProjects = subprojects - project(":framework-bom") - project(":framework-platform")

@@ -3,11 +3,6 @@ plugins {
 	id 'checkstyle'
 	id 'io.spring.javaformat' version "${javaFormatVersion}"
 }
-tasks.all {
-	task -> if (task.name.startsWith('process') || task.name.startsWith('compile') || task.name.startsWith('build')) {
-		task.dependsOn('clean')
-	}
-}
 repositories {
 	mavenCentral()
 	gradlePluginPortal()

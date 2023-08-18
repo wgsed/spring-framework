@@ -18,8 +18,3 @@ dependencies {
 test {
     useJUnitPlatform()
 }
-tasks.all {
-    task -> if (task.name.startsWith('process') || task.name.startsWith('compile') || task.name.startsWith('build')) {
-        task.dependsOn('clean')
-    }
-}
